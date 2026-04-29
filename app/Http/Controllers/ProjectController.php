@@ -4,42 +4,42 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Project;
-use App\Models\File;
+use App\Models\ProjectFile;
+use App\Models\Team;
 
 class ProjectController extends Controller
 {
-    public function index()
+    // show create form
+    public function create()
     {
-        $projects = Project::all();
-        return view('index', compact('projects'));
+        return view('projects.create');
     }
 
+    // store project
     public function store(Request $request)
     {
+        $request->validate([
+            'name' => 'required',
+            'language' => 'required',
+            'type' => 'required'
+        ]);
+
         $project = Project::create([
-            'name' => $request->name
+            'user_id' => auth()->id(),
+            'name' => $request->name,
+            'description' => $request->description,
+            'language' => $request->language,
+            'type' => $request->type
         ]);
 
-        $project->files()->create([
-            'name' => 'index.html',
-            'content' => '<h1>Hello World</h1>'
-        ]);
-
-        return redirect('/');
+        return redirect()->route('projects.show', $project->id)
+            ->with('success', 'Project created successfully!');
     }
 
-    public function open($id)
+    // show project dashboard (editor page)
+    public function show($id)
     {
-        $project = Project::with('files')->findOrFail($id);
-        return view('editor', compact('project'));
-    }
-
-    public function save(Request $request)
-    {
-        $file = File::find($request->file_id);
-        $file->content = $request->content;
-        $file->save();
-
-        return response()->json(['ok' => true]);
+        $project = Project::with('files', 'teams')->findOrFail($id);
+        return view('projects.show', compact('project'));
     }
 }
